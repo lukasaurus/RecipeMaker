@@ -535,43 +535,62 @@ async function createDocFromDefault(data) {
 // =============================================================
 async function createDocFromTemplate(templateDocId, data) {
   templateDocId = templateDocId.replace(/[^a-zA-Z0-9_-]/g, "");
-  // 1. Copy the template
-  const copy = await gapiRequest(
-    `https://www.googleapis.com/drive/v3/files/${templateDocId}/copy`,
-    {
-      method: "POST",
-      body: JSON.stringify({ name: data.title || "Untitled Recipe" }),
-    }
-  );
-  const docId = copy.id;
 
-  // 2. Read the copied doc to discover tags
-  const doc = await gapiRequest(`https://docs.googleapis.com/v1/documents/${docId}`);
-  const body = doc.body?.content || [];
-  const fullText = body
-    .map((el) =>
-      el.paragraph?.elements?.map((e) => e.textRun?.content || "").join("") || ""
-    )
-    .join("");
+  // 1. Read the template doc via Docs API
+  const templateDoc = await gapiRequest(`https://docs.googleapis.com/v1/documents/${templateDocId}`);
+  const templateBody = templateDoc.body?.content || [];
 
-  // Find all {{tag}} patterns
-  const tagRegex = /\{\{(\w+)\}\}/g;
-  const foundTags = new Set();
-  let match;
-  while ((match = tagRegex.exec(fullText)) !== null) {
-    foundTags.add(match[1]);
-  }
+  // 2. Create a new empty doc
+  const newDoc = await gapiRequest("https://docs.googleapis.com/v1/documents", {
+    method: "POST",
+    body: JSON.stringify({ title: data.title || "Untitled Recipe" }),
+  });
+  const docId = newDoc.documentId;
 
-  // 3. Build replaceAllText requests
+  // 3. Extract text and structure from template, build insert requests
   const requests = [];
-  for (const tag of foundTags) {
-    const value = data[tag] || "";
+  let index = 1;
+
+  for (const element of templateBody) {
+    if (!element.paragraph) continue;
+    const paraElements = element.paragraph.elements || [];
+    let paraText = "";
+    for (const pe of paraElements) {
+      if (pe.textRun?.content) {
+        paraText += pe.textRun.content;
+      }
+    }
+
+    // Replace {{tags}} in the text
+    const replacedText = paraText.replace(/\{\{(\w+)\}\}/g, (match, tag) => {
+      const value = data[tag];
+      if (value === undefined || value === null) return match;
+      return Array.isArray(value) ? value.join("\n") : String(value);
+    });
+
+    if (replacedText.length === 0) continue;
+
+    // Insert text
     requests.push({
-      replaceAllText: {
-        containsText: { text: `{{${tag}}}`, matchCase: true },
-        replaceText: value,
+      insertText: {
+        location: { index },
+        text: replacedText,
       },
     });
+
+    // Apply paragraph style if present
+    const namedStyle = element.paragraph.paragraphStyle?.namedStyleType;
+    if (namedStyle && namedStyle !== "NORMAL_TEXT") {
+      requests.push({
+        updateParagraphStyle: {
+          range: { startIndex: index, endIndex: index + replacedText.length - 1 },
+          paragraphStyle: { namedStyleType: namedStyle },
+          fields: "namedStyleType",
+        },
+      });
+    }
+
+    index += replacedText.length;
   }
 
   // 4. Send batch update
