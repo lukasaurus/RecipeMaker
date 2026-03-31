@@ -57,7 +57,11 @@ function initAuth() {
     scope: CONFIG.SCOPES,
     callback: handleTokenResponse,
   });
-  els.signInBtn.style.display = "inline-block";
+
+  // Try to restore previous session
+  if (!restoreSession()) {
+    els.signInBtn.style.display = "inline-block";
+  }
 }
 
 function handleTokenResponse(response) {
@@ -67,7 +71,15 @@ function handleTokenResponse(response) {
   }
   accessToken = response.access_token;
 
+  // Save token with expiry (default 3600s)
+  const expiresAt = Date.now() + (response.expires_in || 3600) * 1000;
+  sessionStorage.setItem("recipe-token", JSON.stringify({ token: accessToken, expiresAt }));
+
   // Fetch user info to show name
+  fetchUserInfoAndShow();
+}
+
+function fetchUserInfoAndShow() {
   fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
     headers: { Authorization: `Bearer ${accessToken}` },
   })
@@ -82,6 +94,18 @@ function handleTokenResponse(response) {
     });
 }
 
+function restoreSession() {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem("recipe-token"));
+    if (saved && saved.token && saved.expiresAt > Date.now()) {
+      accessToken = saved.token;
+      fetchUserInfoAndShow();
+      return true;
+    }
+  } catch {}
+  return false;
+}
+
 function signIn() {
   tokenClient.requestAccessToken();
 }
@@ -91,6 +115,7 @@ function signOut() {
     google.accounts.oauth2.revoke(accessToken);
   }
   accessToken = null;
+  sessionStorage.removeItem("recipe-token");
   showSignedOut();
 }
 
