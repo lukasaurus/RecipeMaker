@@ -529,6 +529,7 @@ async function createDocFromDefault(data) {
 // CUSTOM TEMPLATE: Copy template doc and replace tags
 // =============================================================
 async function createDocFromTemplate(templateDocId, data) {
+  templateDocId = templateDocId.replace(/[^a-zA-Z0-9_-]/g, "");
   // 1. Copy the template
   const copy = await gapiRequest(
     `https://www.googleapis.com/drive/v3/files/${templateDocId}/copy`,
@@ -597,7 +598,7 @@ async function createRecipe() {
   if (templateValue !== "default") {
     const templates = getTemplates();
     const idx = parseInt(templateValue, 10);
-    templateDocId = templates[idx]?.docId;
+    templateDocId = (templates[idx]?.docId || "").replace(/[^a-zA-Z0-9_-]/g, "");
 
     if (templateDocId) {
       showStatus("Reading template...");
