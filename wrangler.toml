@@ -2,5 +2,8 @@ name = "recipemaker"
 compatibility_date = "2024-01-01"
 main = "worker.js"
 
+[vars]
+ALLOWED_ORIGINS = "https://recipemaker.sh-46a.workers.dev"
+
 [assets]
 directory = "./public"

@@ -284,7 +284,8 @@ async function createDocFromDefault(data) {
   // Ingredients
   if (data.ingredients) {
     sections.push({ text: "Ingredients\n", style: "HEADING_2" });
-    const ingredientLines = data.ingredients
+    const rawIngredients = Array.isArray(data.ingredients) ? data.ingredients.join("\n") : data.ingredients;
+    const ingredientLines = rawIngredients
       .split("\n")
       .map((line) => line.replace(/^[-*•]\s*/, "").trim())
       .filter(Boolean);
@@ -294,7 +295,8 @@ async function createDocFromDefault(data) {
   // Instructions
   if (data.instructions) {
     sections.push({ text: "Instructions\n", style: "HEADING_2" });
-    const steps = data.instructions
+    const rawInstructions = Array.isArray(data.instructions) ? data.instructions.join("\n") : data.instructions;
+    const steps = rawInstructions
       .split("\n")
       .map((line) => line.replace(/^\d+[\.\)]\s*/, "").trim())
       .filter(Boolean);
