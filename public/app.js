@@ -566,11 +566,21 @@ async function createDocFromTemplate(templateDocId, data) {
   const docId = copy.id;
 
   // 2. Build replaceAllText requests for each tag
-  const requests = [];
+  const replaceRequests = [];
+  const listTags = ["method", "instructions", "directions", "steps"];
+  const bulletTags = ["ingredients"];
+
   for (const [tag, value] of Object.entries(data)) {
     if (value === undefined || value === null || value === "") continue;
-    const text = Array.isArray(value) ? value.join("\n") : String(value);
-    requests.push({
+    let text = Array.isArray(value) ? value.join("\n") : String(value);
+    // Strip existing numbering/bullets — we'll apply real list formatting
+    if (listTags.includes(tag)) {
+      text = text.split("\n").map((l) => l.replace(/^\d+[\.\)]\s*/, "").trim()).filter(Boolean).join("\n");
+    }
+    if (bulletTags.includes(tag)) {
+      text = text.split("\n").map((l) => l.replace(/^[-*•]\s*/, "").trim()).filter(Boolean).join("\n");
+    }
+    replaceRequests.push({
       replaceAllText: {
         containsText: { text: `{{${tag}}}`, matchCase: false },
         replaceText: text,
@@ -578,15 +588,83 @@ async function createDocFromTemplate(templateDocId, data) {
     });
   }
 
-  // 3. Send batch update
-  if (requests.length > 0) {
+  // 3. Send replaceAllText batch
+  if (replaceRequests.length > 0) {
     await gapiRequest(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
       method: "POST",
-      body: JSON.stringify({ requests }),
+      body: JSON.stringify({ requests: replaceRequests }),
+    });
+  }
+
+  // 4. Re-read the doc to find where list content landed, then apply formatting
+  const updatedDoc = await gapiRequest(`https://docs.googleapis.com/v1/documents/${docId}`);
+  const formatRequests = [];
+
+  // Find text ranges for tags that need list formatting
+  for (const tag of [...listTags, ...bulletTags]) {
+    const value = data[tag];
+    if (!value) continue;
+    let text = Array.isArray(value) ? value.join("\n") : String(value);
+    if (listTags.includes(tag)) {
+      text = text.split("\n").map((l) => l.replace(/^\d+[\.\)]\s*/, "").trim()).filter(Boolean).join("\n");
+    }
+    if (bulletTags.includes(tag)) {
+      text = text.split("\n").map((l) => l.replace(/^[-*•]\s*/, "").trim()).filter(Boolean).join("\n");
+    }
+
+    // Search for this text in the doc
+    const allContent = updatedDoc.body?.content || [];
+    const startIndex = findTextIndex(allContent, text);
+    if (startIndex === -1) continue;
+
+    const lines = text.split("\n").filter(Boolean);
+    let lineStart = startIndex;
+    const preset = listTags.includes(tag)
+      ? "NUMBERED_DECIMAL_ALPHA_ROMAN"
+      : "BULLET_DISC_CIRCLE_SQUARE";
+
+    for (const line of lines) {
+      formatRequests.push({
+        createParagraphBullets: {
+          range: { startIndex: lineStart, endIndex: lineStart + line.length },
+          bulletPreset: preset,
+        },
+      });
+      lineStart += line.length + 1; // +1 for newline
+    }
+  }
+
+  if (formatRequests.length > 0) {
+    await gapiRequest(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
+      method: "POST",
+      body: JSON.stringify({ requests: formatRequests }),
     });
   }
 
   return `https://docs.google.com/document/d/${docId}/edit`;
+}
+
+// Find the start index of a text string in doc content
+function findTextIndex(content, searchText) {
+  const firstLine = searchText.split("\n")[0];
+  for (const el of content) {
+    if (el.paragraph) {
+      for (const pe of el.paragraph.elements || []) {
+        if (pe.textRun?.content?.includes(firstLine)) {
+          return pe.startIndex + pe.textRun.content.indexOf(firstLine);
+        }
+      }
+    }
+    if (el.table) {
+      for (const row of el.table.tableRows || []) {
+        for (const cell of row.tableCells || []) {
+          const result = findTextIndex(cell.content || [], searchText);
+          if (result !== -1) return result;
+        }
+      }
+    }
+  }
+  return -1;
 }
 
 // =============================================================
