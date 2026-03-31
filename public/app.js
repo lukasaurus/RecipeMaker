@@ -34,6 +34,7 @@ const els = {
   addTemplateForm: $("add-template-form"),
   templateNameInput: $("template-name-input"),
   templateUrlInput: $("template-url-input"),
+  browseTemplateBtn: $("browse-template-btn"),
   saveTemplateBtn: $("save-template-btn"),
   cancelTemplateBtn: $("cancel-template-btn"),
   createBtn: $("create-btn"),
@@ -203,6 +204,34 @@ async function moveDocToFolder(fileId) {
     `https://www.googleapis.com/drive/v3/files/${fileId}?addParents=${folder.id}&removeParents=${currentParents}`,
     { method: "PATCH" }
   );
+}
+
+// =============================================================
+// TEMPLATE PICKER (Google Picker API)
+// =============================================================
+function openTemplatePicker() {
+  gapi.load("picker", () => {
+    const view = new google.picker.DocsView(google.picker.ViewId.DOCUMENTS)
+      .setMimeTypes("application/vnd.google-apps.document");
+
+    const picker = new google.picker.PickerBuilder()
+      .setTitle("Choose a template document")
+      .addView(view)
+      .setOAuthToken(accessToken)
+      .setCallback(templatePickerCallback)
+      .build();
+    picker.setVisible(true);
+  });
+}
+
+function templatePickerCallback(data) {
+  if (data.action === google.picker.Action.PICKED) {
+    const doc = data.docs[0];
+    els.templateUrlInput.value = `https://docs.google.com/document/d/${doc.id}/edit`;
+    if (!els.templateNameInput.value.trim()) {
+      els.templateNameInput.value = doc.name;
+    }
+  }
 }
 
 // =============================================================
@@ -660,6 +689,7 @@ function init() {
   els.templateSelect.addEventListener("change", updateRemoveButton);
   els.addTemplateBtn.addEventListener("click", showAddTemplateForm);
   els.cancelTemplateBtn.addEventListener("click", hideAddTemplateForm);
+  els.browseTemplateBtn.addEventListener("click", openTemplatePicker);
   els.saveTemplateBtn.addEventListener("click", addTemplate);
   els.removeTemplateBtn.addEventListener("click", removeTemplate);
 

@@ -160,6 +160,21 @@ input[type="text"] {
   transition: border-color 0.2s;
 }
 
+.url-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.url-row input[type="text"] {
+  flex: 1;
+}
+
+.url-row .btn {
+  white-space: nowrap;
+  margin-top: 0;
+}
+
 input[type="text"]::placeholder {
   color: var(--text-dim);
 }

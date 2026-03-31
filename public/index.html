@@ -48,7 +48,10 @@
       <!-- Add template form (hidden by default) -->
       <div id="add-template-form" style="display:none;">
         <input type="text" id="template-name-input" placeholder="Template name (e.g. 'Work Recipe Card')">
-        <input type="text" id="template-url-input" placeholder="Google Doc URL of your template">
+        <div class="url-row">
+          <input type="text" id="template-url-input" placeholder="Google Doc URL of your template">
+          <button id="browse-template-btn" class="btn btn-secondary btn-small">Browse Drive</button>
+        </div>
         <div class="form-actions">
           <button id="save-template-btn" class="btn btn-primary btn-small">Save</button>
           <button id="cancel-template-btn" class="btn btn-secondary btn-small">Cancel</button>
