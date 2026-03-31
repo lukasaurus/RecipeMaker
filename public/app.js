@@ -259,6 +259,11 @@ function renderTemplates() {
     opt.textContent = t.name;
     els.templateSelect.appendChild(opt);
   });
+  // Restore last used template
+  const last = localStorage.getItem("recipe-last-template");
+  if (last && els.templateSelect.querySelector(`option[value="${last}"]`)) {
+    els.templateSelect.value = last;
+  }
   updateRemoveButton();
 }
 
@@ -591,6 +596,7 @@ async function createRecipe() {
   }
 
   const templateValue = els.templateSelect.value;
+  localStorage.setItem("recipe-last-template", templateValue);
   let templateDocId = null;
   let tags = null;
 
