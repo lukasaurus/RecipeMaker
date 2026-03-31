@@ -357,6 +357,25 @@ function showError(message) {
   els.errorText.textContent = message;
 }
 
+// Recursively extract all text from a Docs API content array (handles tables)
+function extractAllText(content) {
+  let text = "";
+  for (const el of content) {
+    if (el.paragraph) {
+      for (const pe of el.paragraph.elements || []) {
+        if (pe.textRun?.content) text += pe.textRun.content;
+      }
+    } else if (el.table) {
+      for (const row of el.table.tableRows || []) {
+        for (const cell of row.tableCells || []) {
+          text += extractAllText(cell.content || []);
+        }
+      }
+    }
+  }
+  return text;
+}
+
 function resetToInput() {
   els.statusSection.style.display = "none";
   els.resultSection.style.display = "none";
@@ -595,14 +614,7 @@ async function createRecipe() {
       showStatus("Reading template...");
       try {
         const doc = await gapiRequest(`https://docs.googleapis.com/v1/documents/${templateDocId}`);
-        const body = doc.body?.content || [];
-        const fullText = body
-          .map((el) =>
-            el.paragraph?.elements?.map((e) => e.textRun?.content || "").join("") || ""
-          )
-          .join("")
-          .replace(/[\u007B\uFF5B\u2774\uFE5B]/g, "{")
-          .replace(/[\u007D\uFF5D\u2775\uFE5D]/g, "}");
+        const fullText = extractAllText(doc.body?.content || []);
 
         const tagRegex = /\{\{(\w+)\}\}/g;
         const foundTags = [];
