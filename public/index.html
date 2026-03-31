@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recipe Maker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Recipe Maker</h1>
+    <div id="auth-section">
+      <button id="sign-in-btn" class="btn btn-primary" style="display:none;">Sign in with Google</button>
+      <div id="user-info" style="display:none;">
+        <span id="user-name"></span>
+        <button id="sign-out-btn" class="btn btn-secondary">Sign Out</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Step 1: Not signed in -->
+    <section id="signed-out-msg" class="card">
+      <p>Sign in with your Google account to get started. This app will create formatted recipe documents in your Google Drive.</p>
+    </section>
+
+    <!-- Step 2: Signed in - recipe input -->
+    <section id="recipe-section" class="card" style="display:none;">
+      <h2>Paste Your Recipe</h2>
+      <textarea id="recipe-input" placeholder="Paste your entire recipe here — any format works. The AI will figure out the ingredients, instructions, times, etc."></textarea>
+
+      <h3>Template</h3>
+      <div id="template-controls">
+        <select id="template-select">
+          <option value="default">Default Template</option>
+        </select>
+        <button id="add-template-btn" class="btn btn-secondary btn-small">+ Add Template</button>
+        <button id="remove-template-btn" class="btn btn-danger btn-small" style="display:none;">Remove</button>
+      </div>
+
+      <!-- Add template form (hidden by default) -->
+      <div id="add-template-form" style="display:none;">
+        <input type="text" id="template-name-input" placeholder="Template name (e.g. 'Work Recipe Card')">
+        <input type="text" id="template-url-input" placeholder="Google Doc URL of your template">
+        <div class="form-actions">
+          <button id="save-template-btn" class="btn btn-primary btn-small">Save</button>
+          <button id="cancel-template-btn" class="btn btn-secondary btn-small">Cancel</button>
+        </div>
+      </div>
+
+      <button id="create-btn" class="btn btn-primary btn-large">Create Recipe Doc</button>
+    </section>
+
+    <!-- Progress / status -->
+    <section id="status-section" class="card" style="display:none;">
+      <div id="status-spinner" class="spinner"></div>
+      <p id="status-text">Processing...</p>
+    </section>
+
+    <!-- Result -->
+    <section id="result-section" class="card" style="display:none;">
+      <h2>Done!</h2>
+      <div id="warnings"></div>
+      <a id="doc-link" href="#" target="_blank" class="btn btn-primary btn-large">Open Google Doc</a>
+      <button id="new-recipe-btn" class="btn btn-secondary">Make Another</button>
+    </section>
+
+    <!-- Errors -->
+    <section id="error-section" class="card card-error" style="display:none;">
+      <h2>Something went wrong</h2>
+      <p id="error-text"></p>
+      <button id="error-dismiss-btn" class="btn btn-secondary">Try Again</button>
+    </section>
+  </main>
+
+  <footer>
+    <p>Recipes are parsed by Google Gemini AI. Documents are created in your Google Drive.</p>
+  </footer>
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="app.js"></script>
+</body>
+</html>
