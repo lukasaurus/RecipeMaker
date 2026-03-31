@@ -561,8 +561,13 @@ async function createDocFromTemplate(templateDocId, data) {
       }
     }
 
+    // Normalize smart/curly braces to plain braces before matching
+    const normalized = paraText
+      .replace(/[\u007B\uFF5B\u2774\uFE5B]/g, "{")
+      .replace(/[\u007D\uFF5D\u2775\uFE5D]/g, "}");
+
     // Replace {{tags}} in the text
-    const replacedText = paraText.replace(/\{\{(\w+)\}\}/g, (match, tag) => {
+    const replacedText = normalized.replace(/\{\{(\w+)\}\}/g, (match, tag) => {
       const value = data[tag];
       if (value === undefined || value === null) return match;
       return Array.isArray(value) ? value.join("\n") : String(value);
@@ -634,7 +639,9 @@ async function createRecipe() {
           .map((el) =>
             el.paragraph?.elements?.map((e) => e.textRun?.content || "").join("") || ""
           )
-          .join("");
+          .join("")
+          .replace(/[\u007B\uFF5B\u2774\uFE5B]/g, "{")
+          .replace(/[\u007D\uFF5D\u2775\uFE5D]/g, "}");
 
         const tagRegex = /\{\{(\w+)\}\}/g;
         const foundTags = [];
