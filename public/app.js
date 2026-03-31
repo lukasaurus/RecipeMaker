@@ -171,10 +171,10 @@ async function moveDocToFolder(fileId) {
   if (!folder) return;
 
   // Get current parents, then move to selected folder
-  const file = await gapi(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=parents`, {});
+  const file = await gapiRequest(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=parents`, {});
   const currentParents = (file.parents || []).join(",");
 
-  await gapi(
+  await gapiRequest(
     `https://www.googleapis.com/drive/v3/files/${fileId}?addParents=${folder.id}&removeParents=${currentParents}`,
     { method: "PATCH" }
   );
@@ -308,7 +308,7 @@ function resetToInput() {
 // =============================================================
 // GOOGLE DOCS API HELPERS
 // =============================================================
-async function gapi(url, options = {}) {
+async function gapiRequest(url, options = {}) {
   const res = await fetch(url, {
     ...options,
     headers: {
@@ -329,7 +329,7 @@ async function gapi(url, options = {}) {
 // =============================================================
 async function createDocFromDefault(data) {
   // 1. Create empty doc
-  const doc = await gapi("https://docs.googleapis.com/v1/documents", {
+  const doc = await gapiRequest("https://docs.googleapis.com/v1/documents", {
     method: "POST",
     body: JSON.stringify({ title: data.title || "Untitled Recipe" }),
   });
@@ -462,7 +462,7 @@ async function createDocFromDefault(data) {
 
   // 4. Send batch update
   if (requests.length > 0) {
-    await gapi(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
+    await gapiRequest(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
       method: "POST",
       body: JSON.stringify({ requests }),
     });
@@ -476,7 +476,7 @@ async function createDocFromDefault(data) {
 // =============================================================
 async function createDocFromTemplate(templateDocId, data) {
   // 1. Copy the template
-  const copy = await gapi(
+  const copy = await gapiRequest(
     `https://www.googleapis.com/drive/v3/files/${templateDocId}/copy`,
     {
       method: "POST",
@@ -486,7 +486,7 @@ async function createDocFromTemplate(templateDocId, data) {
   const docId = copy.id;
 
   // 2. Read the copied doc to discover tags
-  const doc = await gapi(`https://docs.googleapis.com/v1/documents/${docId}`);
+  const doc = await gapiRequest(`https://docs.googleapis.com/v1/documents/${docId}`);
   const body = doc.body?.content || [];
   const fullText = body
     .map((el) =>
@@ -516,7 +516,7 @@ async function createDocFromTemplate(templateDocId, data) {
 
   // 4. Send batch update
   if (requests.length > 0) {
-    await gapi(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
+    await gapiRequest(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
       method: "POST",
       body: JSON.stringify({ requests }),
     });
@@ -548,7 +548,7 @@ async function createRecipe() {
     if (templateDocId) {
       showStatus("Reading template...");
       try {
-        const doc = await gapi(`https://docs.googleapis.com/v1/documents/${templateDocId}`);
+        const doc = await gapiRequest(`https://docs.googleapis.com/v1/documents/${templateDocId}`);
         const body = doc.body?.content || [];
         const fullText = body
           .map((el) =>
