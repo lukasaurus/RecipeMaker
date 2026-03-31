@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — Recipe Maker</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    main { max-width: 640px; margin: 3rem auto; padding: 0 1.5rem; }
+    .card { padding: 2.5rem; }
+    .card h1 { font-size: 0.85rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: #e8e8e8; margin-bottom: 0.5rem; }
+    .card .date { font-size: 0.75rem; color: #555; margin-bottom: 2rem; }
+    .card h2 { margin-top: 2rem; }
+    .card p, .card li { font-size: 0.85rem; font-weight: 300; line-height: 1.8; color: #888; }
+    .card ul { list-style: none; padding: 0; margin: 0.5rem 0; }
+    .card li::before { content: "—"; margin-right: 0.5rem; color: #555; }
+    .card a { color: #e8e8e8; text-decoration: none; border-bottom: 1px solid #333; }
+    .card a:hover { border-color: #888; }
+    .back { display: inline-block; margin-bottom: 2rem; font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: #555; text-decoration: none; }
+    .back:hover { color: #888; }
+  </style>
+</head>
+<body>
+  <main>
+    <a href="/" class="back">Back to Recipe Maker</a>
+    <section class="card">
+      <h1>Privacy Policy</h1>
+      <p class="date">Effective date: March 31, 2026</p>
+
+      <h2>What Recipe Maker Does</h2>
+      <p>Recipe Maker is a web application that takes recipe text you provide, uses AI to extract structured data from it, and creates a formatted Google Doc in your Google Drive.</p>
+
+      <h2>Data We Collect</h2>
+      <p>When you use Recipe Maker, we process the following:</p>
+      <ul>
+        <li>Your Google account name and email (for authentication)</li>
+        <li>Recipe text you paste into the app</li>
+      </ul>
+
+      <h2>How We Use Your Data</h2>
+      <ul>
+        <li>Your Google account info is used solely to display your name and authenticate API requests</li>
+        <li>Recipe text is sent to Google Gemini AI to extract ingredients, instructions, and other recipe details</li>
+        <li>The extracted data is used to create a Google Doc in your Drive</li>
+      </ul>
+
+      <h2>Data Storage</h2>
+      <p>Recipe Maker does not store your data on any server. Specifically:</p>
+      <ul>
+        <li>No recipe text is saved after processing</li>
+        <li>No Google account information is stored server-side</li>
+        <li>Authentication tokens are held temporarily in your browser session and are never transmitted to or stored on our servers</li>
+        <li>Template and folder preferences are saved locally in your browser only</li>
+      </ul>
+
+      <h2>Third-Party Services</h2>
+      <p>Recipe Maker uses the following third-party services:</p>
+      <ul>
+        <li>Google OAuth 2.0 for authentication</li>
+        <li>Google Docs API and Google Drive API to create documents</li>
+        <li>Google Gemini AI to parse recipe text</li>
+        <li>Cloudflare for hosting and serverless functions</li>
+      </ul>
+      <p>Each service is governed by its own privacy policy. Recipe Maker only requests the minimum permissions needed: the ability to create and edit documents and to manage files the app creates.</p>
+
+      <h2>Data Sharing</h2>
+      <p>We do not sell, share, or distribute your personal data or recipe content to any third party. Data is only transmitted to Google APIs as required to provide the service.</p>
+
+      <h2>Google API Scopes</h2>
+      <p>Recipe Maker requests the following Google API scopes:</p>
+      <ul>
+        <li><strong>Google Docs</strong> — to create and format recipe documents</li>
+        <li><strong>Google Drive (file-level)</strong> — to manage files created by the app and to move them to your chosen folder</li>
+      </ul>
+      <p>The Drive scope is limited to files created by Recipe Maker. The app cannot access or modify any other files in your Drive.</p>
+
+      <h2>Your Rights</h2>
+      <p>You can revoke Recipe Maker's access to your Google account at any time by visiting your <a href="https://myaccount.google.com/permissions">Google Account Permissions</a> page.</p>
+
+      <h2>Contact</h2>
+      <p>If you have questions about this privacy policy, contact us at the GitHub repository: <a href="https://github.com/lukasaurus/RecipeMaker">github.com/lukasaurus/RecipeMaker</a></p>
+    </section>
+  </main>
+</body>
+</html>
