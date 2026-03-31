@@ -3,7 +3,7 @@
 // =============================================================
 const CONFIG = {
   GOOGLE_CLIENT_ID: "892329362970-26qt3og97hqup159prsb82p4luesrgg5.apps.googleusercontent.com",
-  SCOPES: "https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/drive.file",
+  SCOPES: "https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/drive",
 };
 
 // =============================================================
