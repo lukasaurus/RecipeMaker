@@ -115,6 +115,23 @@ input[type="text"]:focus {
   box-shadow: 0 0 0 2px rgba(45, 106, 79, 0.15);
 }
 
+#folder-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.folder-label {
+  flex: 1;
+  font-size: 0.9rem;
+  color: #555;
+  padding: 0.5rem 0.75rem;
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
 #template-controls {
   display: flex;
   align-items: center;

@@ -25,6 +25,9 @@ const els = {
   signedOutMsg: $("signed-out-msg"),
   recipeSection: $("recipe-section"),
   recipeInput: $("recipe-input"),
+  folderName: $("folder-name"),
+  pickFolderBtn: $("pick-folder-btn"),
+  clearFolderBtn: $("clear-folder-btn"),
   templateSelect: $("template-select"),
   addTemplateBtn: $("add-template-btn"),
   removeTemplateBtn: $("remove-template-btn"),
@@ -106,6 +109,75 @@ function showSignedOut() {
   els.statusSection.style.display = "none";
   els.resultSection.style.display = "none";
   els.errorSection.style.display = "none";
+}
+
+// =============================================================
+// FOLDER PICKER (Google Picker API + localStorage)
+// =============================================================
+function getSavedFolder() {
+  try {
+    return JSON.parse(localStorage.getItem("recipe-folder"));
+  } catch {
+    return null;
+  }
+}
+
+function saveFolder(folder) {
+  localStorage.setItem("recipe-folder", JSON.stringify(folder));
+}
+
+function clearSavedFolder() {
+  localStorage.removeItem("recipe-folder");
+  renderFolder();
+}
+
+function renderFolder() {
+  const folder = getSavedFolder();
+  if (folder) {
+    els.folderName.textContent = folder.name;
+    els.clearFolderBtn.style.display = "inline-block";
+  } else {
+    els.folderName.textContent = "My Drive (default)";
+    els.clearFolderBtn.style.display = "none";
+  }
+}
+
+function openFolderPicker() {
+  gapi.load("picker", () => {
+    const view = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+      .setSelectFolderEnabled(true)
+      .setMimeTypes("application/vnd.google-apps.folder");
+
+    const picker = new google.picker.PickerBuilder()
+      .setTitle("Choose a folder for recipes")
+      .addView(view)
+      .setOAuthToken(accessToken)
+      .setCallback(folderPickerCallback)
+      .build();
+    picker.setVisible(true);
+  });
+}
+
+function folderPickerCallback(data) {
+  if (data.action === google.picker.Action.PICKED) {
+    const folder = data.docs[0];
+    saveFolder({ id: folder.id, name: folder.name });
+    renderFolder();
+  }
+}
+
+async function moveDocToFolder(fileId) {
+  const folder = getSavedFolder();
+  if (!folder) return;
+
+  // Get current parents, then move to selected folder
+  const file = await gapi(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=parents`, {});
+  const currentParents = (file.parents || []).join(",");
+
+  await gapi(
+    `https://www.googleapis.com/drive/v3/files/${fileId}?addParents=${folder.id}&removeParents=${currentParents}`,
+    { method: "PATCH" }
+  );
 }
 
 // =============================================================
@@ -530,6 +602,16 @@ async function createRecipe() {
     } else {
       docUrl = await createDocFromDefault(data);
     }
+
+    // Move to saved folder if one is selected
+    if (getSavedFolder()) {
+      showStatus("Moving to folder...");
+      const docIdMatch = docUrl.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
+      if (docIdMatch) {
+        await moveDocToFolder(docIdMatch[1]);
+      }
+    }
+
     showResult(docUrl, warnings);
   } catch (err) {
     showError("Failed to create Google Doc: " + err.message);
@@ -543,6 +625,11 @@ function init() {
   // Auth
   els.signInBtn.addEventListener("click", signIn);
   els.signOutBtn.addEventListener("click", signOut);
+
+  // Folder picker
+  els.pickFolderBtn.addEventListener("click", openFolderPicker);
+  els.clearFolderBtn.addEventListener("click", clearSavedFolder);
+  renderFolder();
 
   // Templates
   els.templateSelect.addEventListener("change", updateRemoveButton);

@@ -29,6 +29,13 @@
       <h2>Paste Your Recipe</h2>
       <textarea id="recipe-input" placeholder="Paste your entire recipe here — any format works. The AI will figure out the ingredients, instructions, times, etc."></textarea>
 
+      <h3>Save to Folder</h3>
+      <div id="folder-controls">
+        <span id="folder-name" class="folder-label">My Drive (default)</span>
+        <button id="pick-folder-btn" class="btn btn-secondary btn-small">Choose Folder</button>
+        <button id="clear-folder-btn" class="btn btn-danger btn-small" style="display:none;">Clear</button>
+      </div>
+
       <h3>Template</h3>
       <div id="template-controls">
         <select id="template-select">
@@ -78,6 +85,7 @@
   </footer>
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js" async defer></script>
   <script src="app.js"></script>
 </body>
 </html>
