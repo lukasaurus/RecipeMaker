@@ -271,8 +271,8 @@ function extractDocId(url) {
   // Supports URLs like:
   // https://docs.google.com/document/d/DOC_ID/edit
   // https://docs.google.com/document/d/DOC_ID
-  const match = url.match(/\/document\/d\/([a-zA-Z0-9_.\-]+)/);
-  return match ? match[1].replace(/\.$/, "") : null;
+  const match = url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
+  return match ? match[1] : null;
 }
 
 function showAddTemplateForm() {
