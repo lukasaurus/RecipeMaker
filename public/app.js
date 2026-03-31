@@ -390,7 +390,7 @@ async function createDocFromDefault(data) {
   // 1. Create empty doc
   const doc = await gapiRequest("https://docs.googleapis.com/v1/documents", {
     method: "POST",
-    body: JSON.stringify({ title: data.title || "Untitled Recipe" }),
+    body: JSON.stringify({ title: data.title || data.recipeName || "Untitled Recipe" }),
   });
   const docId = doc.documentId;
 
@@ -400,7 +400,7 @@ async function createDocFromDefault(data) {
   const sections = [];
 
   // Title is already the document title, but also add it as a heading
-  sections.push({ text: (data.title || "Untitled Recipe") + "\n", style: "HEADING_1" });
+  sections.push({ text: (data.title || data.recipeName || "Untitled Recipe") + "\n", style: "HEADING_1" });
 
   // Metadata line
   const metaParts = [];
@@ -536,69 +536,30 @@ async function createDocFromDefault(data) {
 async function createDocFromTemplate(templateDocId, data) {
   templateDocId = templateDocId.replace(/[^a-zA-Z0-9_-]/g, "");
 
-  // 1. Read the template doc via Docs API
-  const templateDoc = await gapiRequest(`https://docs.googleapis.com/v1/documents/${templateDocId}`);
-  const templateBody = templateDoc.body?.content || [];
-
-  // 2. Create a new empty doc
-  const newDoc = await gapiRequest("https://docs.googleapis.com/v1/documents", {
-    method: "POST",
-    body: JSON.stringify({ title: data.title || "Untitled Recipe" }),
-  });
-  const docId = newDoc.documentId;
-
-  // 3. Extract text and structure from template, build insert requests
-  const requests = [];
-  let index = 1;
-
-  for (const element of templateBody) {
-    if (!element.paragraph) continue;
-    const paraElements = element.paragraph.elements || [];
-    let paraText = "";
-    for (const pe of paraElements) {
-      if (pe.textRun?.content) {
-        paraText += pe.textRun.content;
-      }
+  // 1. Copy the template via Drive API
+  const copy = await gapiRequest(
+    `https://www.googleapis.com/drive/v3/files/${templateDocId}/copy`,
+    {
+      method: "POST",
+      body: JSON.stringify({ name: data.title || data.recipeName || "Untitled Recipe" }),
     }
+  );
+  const docId = copy.id;
 
-    // Normalize smart/curly braces to plain braces before matching
-    const normalized = paraText
-      .replace(/[\u007B\uFF5B\u2774\uFE5B]/g, "{")
-      .replace(/[\u007D\uFF5D\u2775\uFE5D]/g, "}");
-
-    // Replace {{tags}} in the text
-    const replacedText = normalized.replace(/\{\{(\w+)\}\}/g, (match, tag) => {
-      const value = data[tag];
-      if (value === undefined || value === null) return match;
-      return Array.isArray(value) ? value.join("\n") : String(value);
-    });
-
-    if (replacedText.length === 0) continue;
-
-    // Insert text
+  // 2. Build replaceAllText requests for each tag
+  const requests = [];
+  for (const [tag, value] of Object.entries(data)) {
+    if (value === undefined || value === null || value === "") continue;
+    const text = Array.isArray(value) ? value.join("\n") : String(value);
     requests.push({
-      insertText: {
-        location: { index },
-        text: replacedText,
+      replaceAllText: {
+        containsText: { text: `{{${tag}}}`, matchCase: false },
+        replaceText: text,
       },
     });
-
-    // Apply paragraph style if present
-    const namedStyle = element.paragraph.paragraphStyle?.namedStyleType;
-    if (namedStyle && namedStyle !== "NORMAL_TEXT") {
-      requests.push({
-        updateParagraphStyle: {
-          range: { startIndex: index, endIndex: index + replacedText.length - 1 },
-          paragraphStyle: { namedStyleType: namedStyle },
-          fields: "namedStyleType",
-        },
-      });
-    }
-
-    index += replacedText.length;
   }
 
-  // 4. Send batch update
+  // 3. Send batch update
   if (requests.length > 0) {
     await gapiRequest(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
       method: "POST",
