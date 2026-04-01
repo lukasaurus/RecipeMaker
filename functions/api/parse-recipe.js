@@ -67,9 +67,12 @@ INGREDIENTS (applies to any key named "ingredients"):
 - Return as an array of strings
 
 INSTRUCTIONS (applies to any key named "instructions", "method", "directions", or "steps"):
-- BRIEF, direct steps. Use proper cooking terms but keep language simple and action-focused.
-- COMBINE related actions into single steps — do not break them up unnecessarily.
-- Example: instead of three steps "1. Cook bacon until crispy 2. Remove bacon from pan 3. Let cool", write ONE step: "Cook bacon until crispy and set aside to cool"
+- AIM FOR 6-8 STEPS MAXIMUM regardless of how many steps the original has.
+- Aggressively combine related actions. If steps can be done together or in the same sentence, merge them.
+- Each step should be ONE sentence. No sub-steps, no "then", no lists within a step.
+- Cut any preamble, repetition, or obvious instructions (e.g. "gather your ingredients").
+- Use plain language. No flowery descriptions.
+- Example: instead of "1. Cook bacon until crispy 2. Remove from pan 3. Drain on paper towel 4. Let cool", write ONE step: "Fry bacon until crispy, drain and set aside."
 - Return as an array of strings
 
 SERVINGS:
