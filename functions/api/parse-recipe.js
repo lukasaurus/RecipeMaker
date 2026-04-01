@@ -54,16 +54,39 @@ export async function onRequestPost(context) {
       ? tags
       : ["title", "prep_time", "cook_time", "total_time", "servings", "ingredients", "instructions", "notes"];
 
-    const prompt = `You are a recipe parser. Extract structured data from the following recipe text.
+    const prompt = `You are an expert recipe formatting assistant. Extract structured data from the following recipe text and return a JSON object.
 
 Return a JSON object with these exact keys: ${tagList.map((t) => `"${t}"`).join(", ")}
 
-Rules:
-- "ingredients" should be a list with each ingredient on its own line, prefixed with "- "
-- "instructions" should be numbered steps, each on its own line, prefixed with "1. ", "2. ", etc.
-- "notes" should include any tips, variations, or storage info. If none found, return an empty string.
-- For time fields, use human-readable format like "15 minutes" or "1 hour 30 minutes"
-- If a field cannot be determined from the recipe, make your best guess or return an empty string
+INGREDIENTS (applies to any key named "ingredients"):
+- VERY MINIMAL format — just quantity and ingredient name. No extra descriptors.
+- Use abbreviated measurements: T (tablespoon), t (teaspoon), c (cup), g (grams), ml, etc.
+- Examples: "6 potatoes", "1 T oil", "½ t chilli powder", "250g flour", "2 eggs"
+- If the recipe has sections (e.g. Potatoes, Salsa, Toppings, Base), include section headings prefixed with "**HEADING:**" (e.g. "**HEADING:Potatoes**", "**HEADING:Salsa**")
+- Include a blank line marker "**BLANK**" before each section heading EXCEPT the first one
+- Return as an array of strings
+
+INSTRUCTIONS (applies to any key named "instructions", "method", "directions", or "steps"):
+- BRIEF, direct steps. Use proper cooking terms but keep language simple and action-focused.
+- COMBINE related actions into single steps — do not break them up unnecessarily.
+- Example: instead of three steps "1. Cook bacon until crispy 2. Remove bacon from pan 3. Let cool", write ONE step: "Cook bacon until crispy and set aside to cool"
+- Return as an array of strings
+
+SERVINGS:
+- Format as "Serves N" (e.g. "Serves 4", "Serves 6-8"). Default to "Serves 3" if not found.
+
+NOTES:
+- Any tips, variations, storage instructions, or other helpful info from the recipe. Return as an array of strings. If none found, return an empty array.
+
+TEMPERATURES:
+- Convert ALL temperatures to Celsius only. Never include Fahrenheit.
+- Examples: "180°C", "Preheat oven to 200°C"
+
+TIME FIELDS:
+- Use human-readable format like "15 minutes" or "1 hour 30 minutes"
+
+GENERAL:
+- If a field cannot be determined from the recipe, make your best guess or return an empty string / empty array
 - Return ONLY valid JSON, no markdown fences, no extra text
 
 Recipe text:
