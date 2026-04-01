@@ -585,6 +585,7 @@ async function createDocFromTemplate(templateDocId, data) {
   const replaceRequests = [];
   const listTags = ["method", "instructions", "directions", "steps"];
   const ingredientHeadings = []; // heading texts to bold after replacement
+  let ingredientsBlockText = null; // full ingredients text, used to scope heading search
 
   for (const [tag, value] of Object.entries(data)) {
     if (value === undefined || value === null || value === "") continue;
@@ -605,6 +606,7 @@ async function createDocFromTemplate(templateDocId, data) {
         }
       }
       text = processedLines.join("\n");
+      ingredientsBlockText = text;
     } else {
       text = Array.isArray(value) ? value.join("\n") : String(value);
       if (listTags.includes(tag)) {
@@ -656,17 +658,25 @@ async function createDocFromTemplate(templateDocId, data) {
     }
   }
 
-  // Apply bold to ingredient section headings
-  for (const headingText of ingredientHeadings) {
-    const idx = findTextIndex(allContent, headingText);
-    if (idx === -1) continue;
-    formatRequests.push({
-      updateTextStyle: {
-        range: { startIndex: idx, endIndex: idx + headingText.length },
-        textStyle: { bold: true },
-        fields: "bold",
-      },
-    });
+  // Apply bold to ingredient section headings, scoped to the ingredients block
+  if (ingredientHeadings.length > 0 && ingredientsBlockText) {
+    const blockStart = findTextIndex(allContent, ingredientsBlockText);
+    if (blockStart !== -1) {
+      const lines = ingredientsBlockText.split("\n");
+      let lineOffset = 0;
+      for (const line of lines) {
+        if (line && ingredientHeadings.includes(line)) {
+          formatRequests.push({
+            updateTextStyle: {
+              range: { startIndex: blockStart + lineOffset, endIndex: blockStart + lineOffset + line.length },
+              textStyle: { bold: true },
+              fields: "bold",
+            },
+          });
+        }
+        lineOffset += line.length + 1;
+      }
+    }
   }
 
   if (formatRequests.length > 0) {
