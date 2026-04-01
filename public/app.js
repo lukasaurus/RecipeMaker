@@ -434,12 +434,22 @@ async function createDocFromDefault(data) {
   // Ingredients
   if (data.ingredients) {
     sections.push({ text: "Ingredients\n", style: "HEADING_2" });
-    const rawIngredients = Array.isArray(data.ingredients) ? data.ingredients.join("\n") : data.ingredients;
-    const ingredientLines = rawIngredients
-      .split("\n")
-      .map((line) => line.replace(/^[-*•]\s*/, "").trim())
-      .filter(Boolean);
-    sections.push({ text: ingredientLines.join("\n") + "\n\n", style: "NORMAL_TEXT", bullets: true });
+    const rawIngredients = Array.isArray(data.ingredients) ? data.ingredients : data.ingredients.split("\n");
+    const processedLines = [];
+    const ingredientHeadings = [];
+    for (const item of rawIngredients) {
+      const line = item.trim();
+      if (!line || line === "**BLANK**") {
+        processedLines.push("");
+      } else if (line.startsWith("**HEADING:") && line.endsWith("**")) {
+        const headingText = line.slice(10, -2);
+        processedLines.push(headingText);
+        ingredientHeadings.push(headingText);
+      } else {
+        processedLines.push(line);
+      }
+    }
+    sections.push({ text: processedLines.join("\n") + "\n\n", style: "NORMAL_TEXT", ingredientHeadings });
   }
 
   // Instructions
@@ -505,21 +515,6 @@ async function createDocFromDefault(data) {
       }
     }
 
-    // Apply bullet list
-    if (section.bullets) {
-      const lines = section.text.split("\n").filter(Boolean);
-      let lineStart = startIndex;
-      for (const line of lines) {
-        requests.push({
-          createParagraphBullets: {
-            range: { startIndex: lineStart, endIndex: lineStart + line.length },
-            bulletPreset: "BULLET_DISC_CIRCLE_SQUARE",
-          },
-        });
-        lineStart += line.length + 1; // +1 for newline
-      }
-    }
-
     // Apply numbered list
     if (section.numbered) {
       const lines = section.text.split("\n").filter(Boolean);
@@ -532,6 +527,27 @@ async function createDocFromDefault(data) {
           },
         });
         lineStart += line.length + 1;
+      }
+    }
+
+    // Apply bold to ingredient section headings
+    if (section.ingredientHeadings && section.ingredientHeadings.length > 0) {
+      const lines = section.text.split("\n");
+      let lineOffset = 0;
+      for (const line of lines) {
+        if (line && section.ingredientHeadings.includes(line)) {
+          requests.push({
+            updateTextStyle: {
+              range: {
+                startIndex: startIndex + lineOffset,
+                endIndex: startIndex + lineOffset + line.length,
+              },
+              textStyle: { bold: true },
+              fields: "bold",
+            },
+          });
+        }
+        lineOffset += line.length + 1;
       }
     }
 
@@ -568,18 +584,34 @@ async function createDocFromTemplate(templateDocId, data) {
   // 2. Build replaceAllText requests for each tag
   const replaceRequests = [];
   const listTags = ["method", "instructions", "directions", "steps"];
-  const bulletTags = ["ingredients"];
+  const ingredientHeadings = []; // heading texts to bold after replacement
 
   for (const [tag, value] of Object.entries(data)) {
     if (value === undefined || value === null || value === "") continue;
-    let text = Array.isArray(value) ? value.join("\n") : String(value);
-    // Strip existing numbering/bullets — we'll apply real list formatting
-    if (listTags.includes(tag)) {
-      text = text.split("\n").map((l) => l.replace(/^\d+[\.\)]\s*/, "").trim()).filter(Boolean).join("\n");
+    let text;
+
+    if (tag === "ingredients" && Array.isArray(value)) {
+      const processedLines = [];
+      for (const item of value) {
+        const line = item.trim();
+        if (!line || line === "**BLANK**") {
+          processedLines.push("");
+        } else if (line.startsWith("**HEADING:") && line.endsWith("**")) {
+          const headingText = line.slice(10, -2);
+          processedLines.push(headingText);
+          ingredientHeadings.push(headingText);
+        } else {
+          processedLines.push(line);
+        }
+      }
+      text = processedLines.join("\n");
+    } else {
+      text = Array.isArray(value) ? value.join("\n") : String(value);
+      if (listTags.includes(tag)) {
+        text = text.split("\n").map((l) => l.replace(/^\d+[\.\)]\s*/, "").trim()).filter(Boolean).join("\n");
+      }
     }
-    if (bulletTags.includes(tag)) {
-      text = text.split("\n").map((l) => l.replace(/^[-*•]\s*/, "").trim()).filter(Boolean).join("\n");
-    }
+
     replaceRequests.push({
       replaceAllText: {
         containsText: { text: `{{${tag}}}`, matchCase: false },
@@ -599,39 +631,42 @@ async function createDocFromTemplate(templateDocId, data) {
   // 4. Re-read the doc to find where list content landed, then apply formatting
   const updatedDoc = await gapiRequest(`https://docs.googleapis.com/v1/documents/${docId}`);
   const formatRequests = [];
+  const allContent = updatedDoc.body?.content || [];
 
-  // Find text ranges for tags that need list formatting
-  for (const tag of [...listTags, ...bulletTags]) {
+  // Apply numbered list formatting to instruction-type tags
+  for (const tag of listTags) {
     const value = data[tag];
     if (!value) continue;
     let text = Array.isArray(value) ? value.join("\n") : String(value);
-    if (listTags.includes(tag)) {
-      text = text.split("\n").map((l) => l.replace(/^\d+[\.\)]\s*/, "").trim()).filter(Boolean).join("\n");
-    }
-    if (bulletTags.includes(tag)) {
-      text = text.split("\n").map((l) => l.replace(/^[-*•]\s*/, "").trim()).filter(Boolean).join("\n");
-    }
+    text = text.split("\n").map((l) => l.replace(/^\d+[\.\)]\s*/, "").trim()).filter(Boolean).join("\n");
 
-    // Search for this text in the doc
-    const allContent = updatedDoc.body?.content || [];
     const startIndex = findTextIndex(allContent, text);
     if (startIndex === -1) continue;
 
     const lines = text.split("\n").filter(Boolean);
     let lineStart = startIndex;
-    const preset = listTags.includes(tag)
-      ? "NUMBERED_DECIMAL_ALPHA_ROMAN"
-      : "BULLET_DISC_CIRCLE_SQUARE";
-
     for (const line of lines) {
       formatRequests.push({
         createParagraphBullets: {
           range: { startIndex: lineStart, endIndex: lineStart + line.length },
-          bulletPreset: preset,
+          bulletPreset: "NUMBERED_DECIMAL_ALPHA_ROMAN",
         },
       });
-      lineStart += line.length + 1; // +1 for newline
+      lineStart += line.length + 1;
     }
+  }
+
+  // Apply bold to ingredient section headings
+  for (const headingText of ingredientHeadings) {
+    const idx = findTextIndex(allContent, headingText);
+    if (idx === -1) continue;
+    formatRequests.push({
+      updateTextStyle: {
+        range: { startIndex: idx, endIndex: idx + headingText.length },
+        textStyle: { bold: true },
+        fields: "bold",
+      },
+    });
   }
 
   if (formatRequests.length > 0) {
