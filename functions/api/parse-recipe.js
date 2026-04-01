@@ -79,7 +79,10 @@ SERVINGS:
 - Format as "Serves N" (e.g. "Serves 4", "Serves 6-8"). Default to "Serves 3" if not found.
 
 NOTES:
-- Any tips, variations, storage instructions, or other helpful info from the recipe. Return as an array of strings. If none found, return an empty array.
+- Short, genuine tips only — substitutions, storage, variations, or warnings.
+- ONE sentence per note. No fluff or restating what's already in the recipe.
+- Do NOT include anything that is an instruction or preparation step (e.g. how to chop, how to prep an ingredient) — fold those into the instructions instead.
+- If none found, return an empty array.
 
 TEMPERATURES:
 - Convert ALL temperatures to Celsius only. Never include Fahrenheit.
