@@ -67,7 +67,7 @@ INGREDIENTS (applies to any key named "ingredients"):
 - Return as an array of strings
 
 INSTRUCTIONS (applies to any key named "instructions", "method", "directions", or "steps"):
-- AIM FOR 6-8 STEPS MAXIMUM regardless of how many steps the original has.
+- AIM FOR 10-12 STEPS MAXIMUM. Only exceed this if the recipe genuinely requires it.
 - Aggressively combine related actions. If steps can be done together or in the same sentence, merge them.
 - Each step should be ONE sentence. No sub-steps, no "then", no lists within a step.
 - Cut any preamble, repetition, or obvious instructions (e.g. "gather your ingredients").
